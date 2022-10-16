@@ -32,4 +32,8 @@ export const browserRouter = router({
         returning: false,
       }
     }),
+  deleteAll: publicProcedure
+    .mutation(async ({ ctx}) => {
+      return await ctx.prisma.browser.deleteMany();
+    })
 });

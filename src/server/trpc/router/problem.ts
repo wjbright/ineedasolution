@@ -11,7 +11,11 @@ export const problemRouter = router({
     .mutation( async ({ ctx, input }) => {
       return await ctx.prisma.problem.create({data: {
         description: input.problem,
-        browserId: input.signature
+        browserId: input.signature,
       }})
     }),
+  deleteAll: publicProcedure
+    .mutation(async ({ ctx}) => {
+      return await ctx.prisma.problem.deleteMany();
+    })
 });

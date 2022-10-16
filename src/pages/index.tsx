@@ -5,14 +5,19 @@ import FingerprintJS from '@fingerprintjs/fingerprintjs'
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Problem } from "@prisma/client";
+import { TRPCClientError } from "@trpc/client";
 
 const Home: NextPage = () => {
   const browserIdentity = trpc.browser.store.useMutation();
   const addToProblems = trpc.problem.add.useMutation();
   const problemsInDb = trpc.problem.get.useQuery();
   const voteForProblem = trpc.vote.add.useMutation();
+  const deleteProblems = trpc.problem.deleteAll.useMutation();
+  const deleteBrowsers = trpc.browser.deleteAll.useMutation();
+  const deleteVotes = trpc.vote.deleteAll.useMutation();
   const votes = trpc.vote.get.useQuery();
   const { register, handleSubmit, formState: { errors }, reset } = useForm<{problem: string}>();
+  const [signature, setSignature] = useState<string>();
   const [problem, onChangeProblem] = useState<string>();
   const [problems, setProblems] = useState<Problem[]>();
 
@@ -34,19 +39,44 @@ const fingerPrint = useMemo(async () => {
 }, []);
 
 useEffect(() => {
+  let start = true;
+  const getBrowserSignature = async () => {
+    if (start) {
+      const signature =  await fingerPrint;
+      console.log("🚀 ~ file: index.tsx ~ line 46 ~ getBrowserSignature ~ signature", signature)
+    
+      if (!signature) throw new TRPCClientError('Cannot create browser signature');
+      await browserIdentity.mutateAsync({signature})
+
+      setSignature(signature);
+    }
+  }
+
+  getBrowserSignature()
+
+  return () => { start = false }
+
+}, [])
+
+useEffect(() => {
   const availableProblems = problemsInDb.data
   if (availableProblems && problem) {
     const filteredProblems = availableProblems.filter((p: Problem) => p.description.includes(problem))
     setProblems(filteredProblems);
   }
-}, [problem, problemsInDb])
+}, [problem])
 
 const addToYourProblems = async (data: {
   problem: string;
 }) => {
-  const signature =  await fingerPrint;
-  await browserIdentity.mutateAsync({signature})
+  // await Promise.all([
+  //   deleteBrowsers.mutateAsync(),
+  //   deleteVotes.mutateAsync(),
+  //   deleteProblems.mutateAsync()
+  // ])
 
+  if (!signature) throw new TRPCClientError('could not generate browser signature');
+  
   await addToProblems.mutateAsync({
     problem: data.problem, 
     signature,
@@ -57,9 +87,11 @@ const addToYourProblems = async (data: {
 }
 
 const handleVoting = async (problemId: string) => {
+  if (!signature) throw new TRPCClientError('could not generate browser signature');
+
   await voteForProblem.mutateAsync({
     problemId, 
-    signature: browserIdentity.data?.browser.signature as string
+    signature: signature
   })
   votes.refetch()
 }
@@ -90,9 +122,9 @@ const handleVoting = async (problemId: string) => {
             { problems && problems?.length > 4 && <div className="w-full text-center my-3">
               <button 
                 type={'submit'} 
-                disabled={addToProblems.isLoading}
+                disabled={(addToProblems.isLoading || browserIdentity.isLoading)}
                 className="rounded-md px-6 py-4 text-sm text-white bg-purple-700">
-                  {`${addToProblems.isLoading ? 'Loading...' : problemButtonText}`}
+                  {`${(addToProblems.isLoading || browserIdentity.isLoading) ? 'Loading...' : problemButtonText}`}
               </button>
             </div>}
 
@@ -108,16 +140,16 @@ const handleVoting = async (problemId: string) => {
                         const signature = browserIdentity.data?.browser.signature;
                         return (vote.problemId === problem.id && vote.browserSignature === signature)
                       }) ?? false}
-                      votes={votes.data?.map((vote) => vote.problemId === problem.id).length}
+                      votes={votes.data?.filter((vote) => vote.problemId === problem.id).length}
                     />
               })}
             </div>
             <div className="w-full text-center my-3">
               <button 
                 type={'submit'} 
-                disabled={addToProblems.isLoading}
+                disabled={(addToProblems.isLoading || browserIdentity.isLoading)}
                 className="rounded-md px-6 py-4 text-sm text-white bg-purple-700">
-                  {`${addToProblems.isLoading ? 'Loading...' : problemButtonText}`}
+                  {`${(addToProblems.isLoading || browserIdentity.isLoading) ? 'Loading...' : problemButtonText}`}
               </button>
             </div>
           </>
@@ -153,7 +185,7 @@ const ProblemCard = ({
       <button
         type={'button'} 
         onClick={vote}
-        disabled={votingIsOngoing}
+        disabled={votingIsOngoing || voted}
         className="text-purple-500"
       >
         {`${votingIsOngoing ? 'Voting...' : votedText(votes)}`}
