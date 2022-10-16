@@ -12,9 +12,6 @@ const Home: NextPage = () => {
   const addToProblems = trpc.problem.add.useMutation();
   const problemsInDb = trpc.problem.get.useQuery();
   const voteForProblem = trpc.vote.add.useMutation();
-  const deleteProblems = trpc.problem.deleteAll.useMutation();
-  const deleteBrowsers = trpc.browser.deleteAll.useMutation();
-  const deleteVotes = trpc.vote.deleteAll.useMutation();
   const votes = trpc.vote.get.useQuery();
   const { register, handleSubmit, formState: { errors }, reset } = useForm<{problem: string}>();
   const [signature, setSignature] = useState<string>();
@@ -41,9 +38,8 @@ const fingerPrint = useMemo(async () => {
 useEffect(() => {
   let start = true;
   const getBrowserSignature = async () => {
-    if (start) {
+    if (start && !signature) {
       const signature =  await fingerPrint;
-      console.log("🚀 ~ file: index.tsx ~ line 46 ~ getBrowserSignature ~ signature", signature)
     
       if (!signature) throw new TRPCClientError('Cannot create browser signature');
       await browserIdentity.mutateAsync({signature})
@@ -61,7 +57,7 @@ useEffect(() => {
 useEffect(() => {
   const availableProblems = problemsInDb.data
   if (availableProblems && problem) {
-    const filteredProblems = availableProblems.filter((p: Problem) => p.description.includes(problem))
+    const filteredProblems = availableProblems.filter((p: Problem) => p.description.toLowerCase().includes(problem.toLowerCase()))
     setProblems(filteredProblems);
   }
 }, [problem])
@@ -69,12 +65,6 @@ useEffect(() => {
 const addToYourProblems = async (data: {
   problem: string;
 }) => {
-  // await Promise.all([
-  //   deleteBrowsers.mutateAsync(),
-  //   deleteVotes.mutateAsync(),
-  //   deleteProblems.mutateAsync()
-  // ])
-
   if (!signature) throw new TRPCClientError('could not generate browser signature');
   
   await addToProblems.mutateAsync({
@@ -105,53 +95,54 @@ const handleVoting = async (problemId: string) => {
       </Head>
       <main className="container mx-auto flex min-h-screen flex-col items-center justify-center p-4">
         {browserIdentity.data?.returning && <span className="text-gray-700 text-center">Welcome back 👋🏽</span>}
-        <h1 className="text-5xl font-extrabold leading-normal text-gray-700 md:text-[5rem]">
+        <h1 className="text-5xl font-extrabold leading-normal text-gray-700 md:text-[5rem] text-center ">
           I need a <span className="text-purple-300">solution</span>
         </h1>
         <span className="text-gray-700 text-center">Are you looking for a solution to a problem that has not been solved? Type it here, someone is probably interested in building it for you 😉</span>
         <span className="py-4"></span>
          <form className="w-full py-7 text-center items-center" onSubmit={handleSubmit(addToYourProblems)}>
-          <div className="w-full py-7 text-center">
+          <div className="w-full py-4 text-center">
             <textarea {...register('problem', { required: 'Tell us your problem' })} onChange={(e) => onChangeProblem(e.currentTarget.value)} className="w-full textarea block rounded-md border-gray-300 pl-7 pr-12 focus:border-purple-700 focus:ring-purple-700 text-center" placeholder='What problem do you need a solution to?'></textarea>
             {(errors.problem?.message || addToProblems.isError) && <span className="text-red-400">{errors.problem?.message || addToProblems?.error?.message}</span>}
           </div>
-          { <> <span className="py-3"></span>
-            <p className="text-2xl text-gray-700">Is the problem similar to any of these?</p>
-            <p className="text-sm text-gray-700 py-3">Problems with the most votes will likely get solutions built for faster</p>
-            
-            { problems && problems?.length > 4 && <div className="w-full text-center my-3">
-              <button 
-                type={'submit'} 
-                disabled={(addToProblems.isLoading || browserIdentity.isLoading)}
-                className="rounded-md px-6 py-4 text-sm text-white bg-purple-700">
-                  {`${(addToProblems.isLoading || browserIdentity.isLoading) ? 'Loading...' : problemButtonText}`}
-              </button>
-            </div>}
+          {problems && <> 
+              <span className="py-3"></span>
+              {problems.length > 0 && <p className="text-2xl text-gray-700">Is the problem similar to any of these?</p>}
+              <p className="text-sm text-gray-700 py-3">Problems with the most votes will likely get solutions built for faster</p>
+              
+              { problems && problems?.length > 4 && <div className="w-full text-center my-3">
+                <button 
+                  type={'submit'} 
+                  disabled={(addToProblems.isLoading || browserIdentity.isLoading)}
+                  className="rounded-md px-6 py-4 text-sm text-white bg-purple-700">
+                    {`${(addToProblems.isLoading || browserIdentity.isLoading) ? 'Loading...' : problemButtonText}`}
+                </button>
+              </div>}
 
-            <span className="py-4"></span>
-            <div className="flex flex-col w-full">
-              {problems && votes.data && problems.map((problem) => {
-                return <ProblemCard 
-                      key={problem.id}
-                      description={problem.description} 
-                      votingIsOngoing={voteForProblem.isLoading} 
-                      vote={() => handleVoting(problem.id)}
-                      voted={votes.data?.some((vote) => {
-                        const signature = browserIdentity.data?.browser.signature;
-                        return (vote.problemId === problem.id && vote.browserSignature === signature)
-                      }) ?? false}
-                      votes={votes.data?.filter((vote) => vote.problemId === problem.id).length}
-                    />
-              })}
-            </div>
-            <div className="w-full text-center my-3">
-              <button 
-                type={'submit'} 
-                disabled={(addToProblems.isLoading || browserIdentity.isLoading)}
-                className="rounded-md px-6 py-4 text-sm text-white bg-purple-700">
-                  {`${(addToProblems.isLoading || browserIdentity.isLoading) ? 'Loading...' : problemButtonText}`}
-              </button>
-            </div>
+              <span className="py-4"></span>
+              <div className="flex flex-col w-full">
+                {problems && votes.data && problems.map((problem) => {
+                  return <ProblemCard 
+                        key={problem.id}
+                        description={problem.description} 
+                        votingIsOngoing={voteForProblem.isLoading} 
+                        vote={() => handleVoting(problem.id)}
+                        voted={votes.data?.some((vote) => {
+                          const signature = browserIdentity.data?.browser.signature;
+                          return (vote.problemId === problem.id && vote.browserSignature === signature)
+                        }) ?? false}
+                        votes={votes.data?.filter((vote) => vote.problemId === problem.id).length}
+                      />
+                })}
+              </div>
+              <div className="w-full text-center my-3">
+                <button 
+                  type={'submit'} 
+                  disabled={(addToProblems.isLoading || browserIdentity.isLoading)}
+                  className="rounded-md px-6 py-4 text-sm text-white bg-purple-700">
+                    {`${(addToProblems.isLoading || browserIdentity.isLoading) ? 'Loading...' : problemButtonText}`}
+                </button>
+              </div>
           </>
         }
         </form>
