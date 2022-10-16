@@ -2,20 +2,14 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-    provider = "prisma-client-js"
+    provider        = "prisma-client-js"
+    previewFeatures = ["referentialIntegrity"]
 }
 
 datasource db {
-    provider = "sqlite"
-    // NOTE: When using postgresql, mysql or sqlserver, uncomment the @db.Text annotations in model Account below
-    // Further reading: 
-    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
-    url      = env("DATABASE_URL")
-}
-
-model Example {
-    id String @id @default(cuid())
+    provider             = "mysql"
+    url                  = env("DATABASE_URL")
+    referentialIntegrity = "prisma"
 }
 
 // Necessary for Next auth
@@ -25,12 +19,12 @@ model Account {
     type              String
     provider          String
     providerAccountId String
-    refresh_token     String? // @db.Text
-    access_token      String? // @db.Text
+    refresh_token     String? @db.Text
+    access_token      String? @db.Text
     expires_at        Int?
     token_type        String?
     scope             String?
-    id_token          String? // @db.Text
+    id_token          String? @db.Text
     session_state     String?
     user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -53,6 +47,26 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
+}
+
+model Vote {
+    id               String  @id @default(cuid())
+    browserSignature String
+    problemId        String
+    problem          Problem @relation(fields: [problemId], references: [id])
+    browser          Browser @relation(fields: [browserSignature], references: [signature], onDelete: Cascade)
+}
+
+model Problem {
+    id          String @id @default(cuid())
+    description String
+    Vote        Vote[]
+}
+
+model Browser {
+    id        String @id @default(cuid())
+    signature String @unique
+    Vote      Vote[]
 }
 
 model VerificationToken {
