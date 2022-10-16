@@ -66,7 +66,6 @@ const addToYourProblems = async (data: {
   problem: string;
 }) => {
   if (!signature) throw new TRPCClientError('could not generate browser signature');
-  console.log("🚀 ~ file: index.tsx ~ line 69 ~ signature", signature)
   
   await addToProblems.mutateAsync({
     problem: data.problem, 
