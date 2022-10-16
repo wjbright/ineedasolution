@@ -95,7 +95,7 @@ const handleVoting = async (problemId: string) => {
         <script defer data-domain="ineedasolution.online" src="https://plausible.io/js/plausible.js"></script>
       </Head>
       <main className="container mx-auto flex min-h-screen flex-col items-center justify-center p-4">
-        {browserIdentity.data?.returning && <span className="text-gray-700 text-center">Welcome back 👋🏽</span>}
+        {browserIdentity.data?.returning && <span className="text-gray-700 text-center">Welcome 👋🏽</span>}
         <h1 className="text-5xl font-extrabold leading-normal text-gray-700 md:text-[5rem] text-center ">
           I need a <span className="text-purple-300">solution</span>
         </h1>
