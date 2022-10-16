@@ -15,7 +15,7 @@ export default function Problems() {
                         key={problem.id}
                         description={problem.description} 
                         votingIsOngoing={false} 
-                        vote={() => {}}
+                        vote={() => false}
                         voted={true}
                         votes={votes.data?.filter((vote) => vote.problemId === problem.id).length || 0}
                     />
