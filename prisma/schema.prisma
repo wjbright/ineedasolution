@@ -55,12 +55,12 @@ model Vote {
 }
 
 model Problem {
-    id          String   @id @default(cuid())
-    description String
+    id          String    @id @default(cuid())
+    description String    @db.LongText
     Vote        Vote[]
     browserId   String
-    browser     Browser []
-    createdAt   DateTime @default(now())
+    browser     Browser[]
+    createdAt   DateTime  @default(now())
 }
 
 model Browser {
