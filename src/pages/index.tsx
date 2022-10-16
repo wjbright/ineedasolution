@@ -12,9 +12,6 @@ const Home: NextPage = () => {
   const addToProblems = trpc.problem.add.useMutation();
   const problemsInDb = trpc.problem.get.useQuery();
   const voteForProblem = trpc.vote.add.useMutation();
-  const deleteProblems = trpc.problem.deleteAll.useMutation();
-  const deleteBrowsers = trpc.browser.deleteAll.useMutation();
-  const deleteVotes = trpc.vote.deleteAll.useMutation();
   const votes = trpc.vote.get.useQuery();
   const { register, handleSubmit, formState: { errors }, reset } = useForm<{problem: string}>();
   const [signature, setSignature] = useState<string>();
@@ -43,7 +40,6 @@ useEffect(() => {
   const getBrowserSignature = async () => {
     if (start) {
       const signature =  await fingerPrint;
-      console.log("🚀 ~ file: index.tsx ~ line 46 ~ getBrowserSignature ~ signature", signature)
     
       if (!signature) throw new TRPCClientError('Cannot create browser signature');
       await browserIdentity.mutateAsync({signature})
@@ -69,12 +65,6 @@ useEffect(() => {
 const addToYourProblems = async (data: {
   problem: string;
 }) => {
-  // await Promise.all([
-  //   deleteBrowsers.mutateAsync(),
-  //   deleteVotes.mutateAsync(),
-  //   deleteProblems.mutateAsync()
-  // ])
-
   if (!signature) throw new TRPCClientError('could not generate browser signature');
   
   await addToProblems.mutateAsync({
