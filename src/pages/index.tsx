@@ -162,7 +162,7 @@ type ProblemCardProps = {
   votes: number;
 };
 
-const ProblemCard = ({
+export const ProblemCard = ({
   description,
   vote,
   votingIsOngoing,
@@ -171,7 +171,7 @@ const ProblemCard = ({
 }: ProblemCardProps) => {
   const votedText = (votes: number) => voted ? `Voted ${votes} ${votes > 1 ? 'times' : 'time'}` : 'Upvote 🔼'
   return (
-    <section className="flex flex-row my-1 justify-between rounded border-2 border-gray-500 p-6 shadow-xl duration-500 motion-safe:hover:scale-105">
+    <section className="flex flex-row my-1 w-full justify-between rounded border-2 border-gray-500 p-6 shadow-xl duration-500 motion-safe:hover:scale-105">
       <p className="text-sm text-gray-600 pb-3 w-[90%] text-left">{description}</p>
       
       <button
